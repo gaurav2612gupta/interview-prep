@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ultimate SDE 2 Preparation Dashboard: 230+ Curated LeetCode DSA Problems, LLD Design Patterns & Classic Questions, HLD Distributed Systems Architectures, and Week-by-Week Strategy.">
+  <title>SDE 2 Interview Mastery Dashboard | DSA, LLD & HLD Roadmap</title>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="container header-content">
+      <div class="brand-logo">
+        <div class="logo-badge">SDE2</div>
+        <div>
+          <h1 class="brand-title">SDE 2 Interview Mastery Hub</h1>
+          <p class="brand-sub">Curated Preparation Roadmap for Top Tier Tech Companies</p>
+        </div>
+      </div>
+
+      <div class="header-stats">
+        <div class="mini-stat">
+          <span class="mini-stat-label">DSA Progress</span>
+          <span class="mini-stat-value" id="header-dsa-count">0 / 230</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-stat-label">Completion</span>
+          <span class="mini-stat-value" id="header-dsa-percent">0%</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Bar -->
+  <nav class="nav-bar">
+    <div class="container">
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="dsa">
+          <i class="fas fa-code"></i> DSA Questions Tracker
+          <span class="tab-badge" id="badge-dsa-total">230 Qs</span>
+        </button>
+        <button class="nav-tab" data-tab="lld">
+          <i class="fas fa-cubes"></i> Low-Level Design (LLD)
+          <span class="tab-badge">12 Classic Problems</span>
+        </button>
+        <button class="nav-tab" data-tab="hld">
+          <i class="fas fa-network-wired"></i> High-Level Design (HLD)
+          <span class="tab-badge">12 Systems</span>
+        </button>
+        <button class="nav-tab" data-tab="roadmap">
+          <i class="fas fa-map-signs"></i> 12-Week Prep Roadmap
+          <span class="tab-badge">SDE 2 Strategy</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="container main-content">
+
+    <!-- TAB 1: DSA TRACKER -->
+    <section id="tab-dsa" class="tab-panel active">
+      <!-- Hero Banner & Stats -->
+      <div class="hero-banner">
+        <div class="hero-title-group">
+          <h2 class="hero-title">Data Structures & Algorithms Tracker</h2>
+          <p class="hero-sub">230+ High-frequency LeetCode questions categorized by topic for SDE-2 interviews at Amazon, Google, Meta, Swiggy, Uber & Microsoft.</p>
+        </div>
+
+        <div class="progress-dashboard-grid">
+          <div class="stat-card">
+            <div class="stat-icon dsa"><i class="fas fa-tasks"></i></div>
+            <div class="stat-info">
+              <div class="stat-val" id="stat-total-questions">230</div>
+              <div class="stat-lbl">Total Questions</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon lld"><i class="fas fa-check-double"></i></div>
+            <div class="stat-info">
+              <div class="stat-val" id="stat-dsa-completed">0</div>
+              <div class="stat-lbl">Solved Questions</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon hld"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-info">
+              <div class="stat-val" id="stat-dsa-percent">0%</div>
+              <div class="stat-lbl">Overall Mastery</div>
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill fill-dsa" id="dsa-progress-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls & Search Bar -->
+      <div class="controls-bar">
+        <div class="search-box">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" id="dsa-search-input" class="search-input" placeholder="Search by question title, ID (#42), or company (e.g. Amazon)...">
+        </div>
+
+        <div class="filter-group">
+          <select id="difficulty-filter" class="select-filter">
+            <option value="all">All Difficulties</option>
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
+
+          <select id="status-filter" class="select-filter">
+            <option value="all">All Status</option>
+            <option value="done">Completed</option>
+            <option value="todo">Pending (Todo)</option>
+          </select>
+
+          <button id="btn-expand-all" class="btn-secondary" title="Expand All Topics"><i class="fas fa-angle-double-down"></i> Expand All</button>
+          <button id="btn-collapse-all" class="btn-secondary" title="Collapse All Topics"><i class="fas fa-angle-double-up"></i> Collapse</button>
+          <button id="btn-export-data" class="btn-secondary" title="Export Progress Backup"><i class="fas fa-download"></i> Backup JSON</button>
+          <button id="btn-import-data" class="btn-secondary" title="Import Progress Backup"><i class="fas fa-upload"></i> Restore</button>
+          <input type="file" id="file-import-input" accept=".json" style="display: none;">
+        </div>
+      </div>
+
+      <!-- Accordion Questions Container -->
+      <div id="dsa-accordion-container">
+        <!-- Rendered via app.js -->
+      </div>
+    </section>
+
+    <!-- TAB 2: LLD MODULE -->
+    <section id="tab-lld" class="tab-panel">
+      <div class="hero-banner">
+        <h2 class="hero-title">Low-Level Design (LLD) & Object-Oriented Architecture</h2>
+        <p class="hero-sub">Master clean code principles, SOLID design, Gang of Four patterns, concurrency, and 12 classic LLD machine coding problems.</p>
+      </div>
+
+      <!-- LLD Fundamentals Section -->
+      <h3 style="font-size: 1.4rem; margin-bottom: 16px; color: var(--accent-purple); display:flex; align-items:center; gap:10px;">
+        <i class="fas fa-book-open"></i> Core OOP & Design Fundamentals
+      </h3>
+      <div id="lld-fundamentals-container">
+        <!-- Rendered via app.js -->
+      </div>
+
+      <!-- Classic LLD Problems Grid -->
+      <h3 style="font-size: 1.4rem; margin: 32px 0 16px 0; color: #fff; display:flex; align-items:center; gap:10px;">
+        <i class="fas fa-laptop-code"></i> Top 12 Classic LLD Interview Problems
+      </h3>
+      <div id="lld-grid-container" class="section-grid">
+        <!-- Rendered via app.js -->
+      </div>
+    </section>
+
+    <!-- TAB 3: HLD MODULE -->
+    <section id="tab-hld" class="tab-panel">
+      <div class="hero-banner">
+        <h2 class="hero-title">High-Level Design (HLD) & Distributed Systems</h2>
+        <p class="hero-sub">Architect highly available, scalable, fault-tolerant systems handling millions of QPS, petabytes of data, and sub-100ms latency.</p>
+      </div>
+
+      <!-- HLD Building Blocks -->
+      <h3 style="font-size: 1.4rem; margin-bottom: 16px; color: var(--accent-emerald); display:flex; align-items:center; gap:10px;">
+        <i class="fas fa-cubes"></i> Core Building Blocks & Distributed Concepts
+      </h3>
+      <div id="hld-building-blocks-container">
+        <!-- Rendered via app.js -->
+      </div>
+
+      <!-- Classic HLD Systems Grid -->
+      <h3 style="font-size: 1.4rem; margin: 32px 0 16px 0; color: #fff; display:flex; align-items:center; gap:10px;">
+        <i class="fas fa-server"></i> Top 12 Real-World System Architectures
+      </h3>
+      <div id="hld-grid-container" class="section-grid">
+        <!-- Rendered via app.js -->
+      </div>
+    </section>
+
+    <!-- TAB 4: ROADMAP MODULE -->
+    <section id="tab-roadmap" class="tab-panel">
+      <div class="hero-banner">
+        <h2 class="hero-title">12-Week Structured SDE 2 Preparation Strategy</h2>
+        <p class="hero-sub">A proven week-by-week game plan balancing Data Structures, Low-Level Machine Coding, System Design, and Behavioral rounds.</p>
+      </div>
+
+      <!-- Expectations Grid -->
+      <div class="section-grid" style="margin-bottom:32px;">
+        <div class="stat-card" style="align-items: flex-start;">
+          <div class="stat-icon dsa"><i class="fas fa-brain"></i></div>
+          <div class="stat-info">
+            <h4 style="font-weight:700; font-size:1rem; margin-bottom:4px; color:#fff;">Problem Solving Speed</h4>
+            <p style="font-size:0.85rem; color:var(--text-secondary);">Solve LeetCode Medium/Hard in 25 mins with optimal space/time and bug-free code.</p>
+          </div>
+        </div>
+        <div class="stat-card" style="align-items: flex-start;">
+          <div class="stat-icon lld"><i class="fas fa-drafting-compass"></i></div>
+          <div class="stat-info">
+            <h4 style="font-weight:700; font-size:1rem; margin-bottom:4px; color:#fff;">Machine Coding & OOP</h4>
+            <p style="font-size:0.85rem; color:var(--text-secondary);">Write clean, extensible code adhering to SOLID principles and thread safety within 60 mins.</p>
+          </div>
+        </div>
+        <div class="stat-card" style="align-items: flex-start;">
+          <div class="stat-icon hld"><i class="fas fa-cloud-upload-alt"></i></div>
+          <div class="stat-info">
+            <h4 style="font-weight:700; font-size:1rem; margin-bottom:4px; color:#fff;">Distributed Architecture</h4>
+            <p style="font-size:0.85rem; color:var(--text-secondary);">Articulate trade-offs (CAP, PACELC, Storage engines, Cache invalidation, Idempotency).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline Component -->
+      <h3 style="font-size: 1.4rem; margin-bottom: 24px; color: var(--accent-cyan); display:flex; align-items:center; gap:10px;">
+        <i class="fas fa-calendar-alt"></i> Timeline Breakdown
+      </h3>
+      <div id="roadmap-timeline-container" class="roadmap-timeline">
+        <!-- Rendered via app.js -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Note Modal -->
+  <div class="modal-overlay" id="note-modal">
+    <div class="modal-card">
+      <h3 class="modal-title" id="note-modal-title">Notes</h3>
+      <textarea class="modal-textarea" id="note-textarea" placeholder="Add your notes, key insights, corner cases, or personal code solution link..."></textarea>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="btn-close-note">Cancel</button>
+        <button class="btn-primary" id="btn-save-note">Save Note</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Files & App Execution Script -->
+  <script src="data/dsa-questions.js"></script>
+  <script src="data/lld-topics.js"></script>
+  <script src="data/hld-topics.js"></script>
+  <script src="data/roadmap-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
