@@ -79,6 +79,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Set of open topic accordion IDs (default first topic open)
+  let openTopicIds = new Set([dsaTopicsData[0] ? dsaTopicsData[0].id : 'arrays-hashing']);
+
   /* -------------------------------------------------------------
      Render DSA Section & Accordions
   ------------------------------------------------------------- */
@@ -89,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedDiff = difficultyFilter ? difficultyFilter.value : 'all';
     const selectedStatus = statusFilter ? statusFilter.value : 'all';
 
-    dsaTopicsData.forEach((topic, index) => {
+    dsaTopicsData.forEach((topic) => {
       // Filter questions in topic
       const filteredQuestions = topic.questions.filter(q => {
         const matchesSearch = q.title.toLowerCase().includes(searchTerm) ||
@@ -108,15 +111,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // Automatically open topic if active search term is entered
+      if (searchTerm !== '' && filteredQuestions.length > 0) {
+        openTopicIds.add(topic.id);
+      }
+
       const completedInTopic = topic.questions.filter(q => completedSet.has(q.id)).length;
       const totalInTopic = topic.questions.length;
+      const isOpen = openTopicIds.has(topic.id);
 
       const topicSection = document.createElement('div');
       topicSection.className = 'dsa-topic-section';
       topicSection.setAttribute('data-topic-id', topic.id);
 
       const headerDiv = document.createElement('div');
-      headerDiv.className = `topic-header ${index === 0 ? 'open' : ''}`;
+      headerDiv.className = `topic-header ${isOpen ? 'open' : ''}`;
       headerDiv.innerHTML = `
         <div class="topic-meta">
           <div class="topic-badge-icon">
@@ -134,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       const listDiv = document.createElement('div');
-      listDiv.className = `questions-list ${index === 0 ? 'show' : ''}`;
+      listDiv.className = `questions-list ${isOpen ? 'show' : ''}`;
 
       let rowsHtml = '';
       filteredQuestions.forEach(q => {
@@ -191,13 +200,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Toggle accordion event
       headerDiv.addEventListener('click', () => {
-        const isOpen = headerDiv.classList.contains('open');
-        if (isOpen) {
+        if (openTopicIds.has(topic.id)) {
+          openTopicIds.delete(topic.id);
           headerDiv.classList.remove('open');
           listDiv.classList.remove('show');
         } else {
+          openTopicIds.add(topic.id);
           headerDiv.classList.add('open');
-          listDiv.classList.show ? listDiv.classList.show() : listDiv.classList.add('show');
+          listDiv.classList.add('show');
         }
       });
 
@@ -434,15 +444,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnExpandAll) {
       btnExpandAll.addEventListener('click', () => {
-        document.querySelectorAll('.topic-header').forEach(h => h.classList.add('open'));
-        document.querySelectorAll('.questions-list').forEach(l => l.classList.add('show'));
+        dsaTopicsData.forEach(t => openTopicIds.add(t.id));
+        renderDsaTopics();
       });
     }
 
     if (btnCollapseAll) {
       btnCollapseAll.addEventListener('click', () => {
-        document.querySelectorAll('.topic-header').forEach(h => h.classList.remove('open'));
-        document.querySelectorAll('.questions-list').forEach(l => l.classList.remove('show'));
+        openTopicIds.clear();
+        renderDsaTopics();
       });
     }
 
