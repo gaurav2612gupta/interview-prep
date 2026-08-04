@@ -1108,11 +1108,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseNote = document.getElementById('btn-close-note');
   let currentNoteQId = null;
 
+  // Safe reference to dataset
+  const topics = (typeof dsaTopicsData !== 'undefined' && Array.isArray(dsaTopicsData)) ? dsaTopicsData : [];
+  const lldData = (typeof lldTopicsData !== 'undefined') ? lldTopicsData : { fundamentals: [], classicProblems: [] };
+  const hldData = (typeof hldTopicsData !== 'undefined') ? hldTopicsData : { buildingBlocks: [], classicSystems: [] };
+  const roadmapInfo = (typeof roadmapData !== 'undefined') ? roadmapData : { weeks: [] };
+
   // Total questions count calculation
   let totalDsaQuestionsCount = 0;
-  dsaTopicsData.forEach(topic => {
-    totalDsaQuestionsCount += topic.questions.length;
+  topics.forEach(topic => {
+    totalDsaQuestionsCount += (topic.questions || []).length;
   });
+
+  // Set of open topic accordion IDs (default all topics open so all questions are visible)
+  let openTopicIds = new Set(topics.map(t => t.id));
+
+  // Helper: find question by ID
+  function findQuestionById(qid) {
+    for (const topic of topics) {
+      for (const q of (topic.questions || [])) {
+        if (q.id === qid) return q;
+      }
+    }
+    return null;
+  }
 
   // Initialize Dashboard
   init();
@@ -1139,30 +1158,36 @@ document.addEventListener('DOMContentLoaded', () => {
         tabPanels.forEach(p => p.classList.remove('active'));
 
         tab.classList.add('active');
-        document.getElementById(`tab-${targetTab}`).classList.add('active');
+        const panel = document.getElementById(`tab-${targetTab}`);
+        if (panel) panel.classList.add('active');
       });
     });
   }
-
-  // Set of open topic accordion IDs (default first topic open)
-  let openTopicIds = new Set([dsaTopicsData[0] ? dsaTopicsData[0].id : 'arrays-hashing']);
 
   /* -------------------------------------------------------------
      Render DSA Section & Accordions
   ------------------------------------------------------------- */
   function renderDsaTopics() {
+    if (!dsaAccordionContainer) return;
     dsaAccordionContainer.innerHTML = '';
 
-    const searchTerm = globalSearchInput ? globalSearchInput.value.toLowerCase().trim() : '';
+    const searchTerm = (globalSearchInput && typeof globalSearchInput.value === 'string') ? globalSearchInput.value.toLowerCase().trim() : '';
     const selectedDiff = difficultyFilter ? difficultyFilter.value : 'all';
     const selectedStatus = statusFilter ? statusFilter.value : 'all';
 
-    dsaTopicsData.forEach((topic) => {
-      // Filter questions in topic
-      const filteredQuestions = topic.questions.filter(q => {
-        const matchesSearch = q.title.toLowerCase().includes(searchTerm) ||
-                              q.id.toString().includes(searchTerm) ||
-                              q.company.some(c => c.toLowerCase().includes(searchTerm));
+    topics.forEach((topic) => {
+      const topicQuestions = topic.questions || [];
+
+      // Filter questions in topic safely
+      const filteredQuestions = topicQuestions.filter(q => {
+        const qTitle = String(q.title || '').toLowerCase();
+        const qIdStr = String(q.id || '');
+        const qCompanies = Array.isArray(q.company) ? q.company : [];
+
+        const matchesSearch = !searchTerm ||
+                              qTitle.includes(searchTerm) ||
+                              qIdStr.includes(searchTerm) ||
+                              qCompanies.some(c => String(c).toLowerCase().includes(searchTerm));
         const matchesDiff = selectedDiff === 'all' || q.difficulty === selectedDiff;
         const isDone = completedSet.has(q.id);
         const matchesStatus = selectedStatus === 'all' || 
@@ -1181,8 +1206,8 @@ document.addEventListener('DOMContentLoaded', () => {
         openTopicIds.add(topic.id);
       }
 
-      const completedInTopic = topic.questions.filter(q => completedSet.has(q.id)).length;
-      const totalInTopic = topic.questions.length;
+      const completedInTopic = topicQuestions.filter(q => completedSet.has(q.id)).length;
+      const totalInTopic = topicQuestions.length;
       const isOpen = openTopicIds.has(topic.id);
 
       const topicSection = document.createElement('div');
@@ -1191,14 +1216,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const headerDiv = document.createElement('div');
       headerDiv.className = `topic-header ${isOpen ? 'open' : ''}`;
+      headerDiv.setAttribute('data-action', 'toggle-accordion');
+      headerDiv.setAttribute('data-topic-id', topic.id);
       headerDiv.innerHTML = `
         <div class="topic-meta">
           <div class="topic-badge-icon">
             <i class="fas fa-layer-group"></i>
           </div>
           <div>
-            <div class="topic-title">${topic.name}</div>
-            <div class="topic-desc">${topic.description}</div>
+            <div class="topic-title">${topic.name || 'Topic'}</div>
+            <div class="topic-desc">${topic.description || ''}</div>
           </div>
         </div>
         <div class="topic-progress-info">
@@ -1214,30 +1241,31 @@ document.addEventListener('DOMContentLoaded', () => {
       filteredQuestions.forEach(q => {
         const isChecked = completedSet.has(q.id);
         const hasNote = Boolean(notesMap[q.id]);
-        const companyTagsHtml = q.company.map(c => `<span class="tag-co">${c}</span>`).join('');
+        const qCompanies = Array.isArray(q.company) ? q.company : [];
+        const companyTagsHtml = qCompanies.map(c => `<span class="tag-co">${c}</span>`).join('');
 
         rowsHtml += `
           <tr class="q-row ${isChecked ? 'completed' : ''}" data-qid="${q.id}">
             <td style="width: 40px; text-align: center;">
-              <div class="custom-checkbox ${isChecked ? 'checked' : ''}" onclick="toggleQuestionDone(${q.id}, event)">
+              <div class="custom-checkbox ${isChecked ? 'checked' : ''}" data-action="toggle-done" data-qid="${q.id}">
                 ${isChecked ? '<i class="fas fa-check"></i>' : ''}
               </div>
             </td>
             <td style="width: 60px; color: var(--text-muted); font-size: 0.82rem;">#${q.id}</td>
             <td>
-              <a href="${q.link}" target="_blank" rel="noopener noreferrer" class="q-title-link">
-                <span class="q-title">${q.title}</span>
+              <a href="${q.link || '#'}" target="_blank" rel="noopener noreferrer" class="q-title-link">
+                <span class="q-title">${q.title || ''}</span>
                 <i class="fas fa-external-link-alt lc-icon"></i>
               </a>
             </td>
             <td style="width: 110px;">
-              <span class="badge-diff ${q.difficulty}">${q.difficulty}</span>
+              <span class="badge-diff ${q.difficulty || 'Easy'}">${q.difficulty || 'Easy'}</span>
             </td>
             <td>
               <div class="company-tags">${companyTagsHtml}</div>
             </td>
             <td style="width: 50px; text-align: center;">
-              <button class="btn-note ${hasNote ? 'has-note' : ''}" onclick="openNoteModal(${q.id}, '${escapeQuotes(q.title)}')" title="Add/Edit Notes">
+              <button class="btn-note ${hasNote ? 'has-note' : ''}" data-action="open-note" data-qid="${q.id}" title="Add/Edit Notes">
                 <i class="${hasNote ? 'fas' : 'far'} fa-sticky-note"></i>
               </button>
             </td>
@@ -1263,29 +1291,14 @@ document.addEventListener('DOMContentLoaded', () => {
         </table>
       `;
 
-      // Toggle accordion event
-      headerDiv.addEventListener('click', () => {
-        if (openTopicIds.has(topic.id)) {
-          openTopicIds.delete(topic.id);
-          headerDiv.classList.remove('open');
-          listDiv.classList.remove('show');
-        } else {
-          openTopicIds.add(topic.id);
-          headerDiv.classList.add('open');
-          listDiv.classList.add('show');
-        }
-      });
-
       topicSection.appendChild(headerDiv);
       topicSection.appendChild(listDiv);
       dsaAccordionContainer.appendChild(topicSection);
     });
   }
 
-  // Window scoped function to toggle completion
-  window.toggleQuestionDone = function(qid, event) {
-    if (event) event.stopPropagation();
-
+  // Toggle completion function
+  function toggleQuestionDone(qid) {
     if (completedSet.has(qid)) {
       completedSet.delete(qid);
     } else {
@@ -1295,37 +1308,38 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem(STORAGE_KEY_COMPLETED, JSON.stringify(Array.from(completedSet)));
     renderDsaTopics();
     updateStatistics();
-  };
+  }
 
   /* -------------------------------------------------------------
      Render LLD Section
   ------------------------------------------------------------- */
   function renderLldModule() {
+    if (!lldGridContainer) return;
     lldGridContainer.innerHTML = '';
 
-    // Render Classic LLD Questions Grid
-    lldTopicsData.classicProblems.forEach(prob => {
+    const classicProbs = lldData.classicProblems || [];
+    classicProbs.forEach(prob => {
       const card = document.createElement('div');
       card.className = 'lld-card';
       
-      const patternTags = prob.patterns.map(p => `<span class="tag-pattern">${p}</span>`).join('');
-      const conceptTags = prob.concepts.map(c => `<span class="tag-concept">${c}</span>`).join('');
-      const linksHtml = prob.links.map(l => `<a href="${l.url}" target="_blank" class="res-link"><i class="fas fa-link"></i> ${l.title}</a>`).join('');
+      const patternTags = (prob.patterns || []).map(p => `<span class="tag-pattern">${p}</span>`).join('');
+      const conceptTags = (prob.concepts || []).map(c => `<span class="tag-concept">${c}</span>`).join('');
+      const linksHtml = (prob.links || []).map(l => `<a href="${l.url}" target="_blank" class="res-link"><i class="fas fa-link"></i> ${l.title}</a>`).join('');
 
       card.innerHTML = `
         <div class="card-top">
           <div class="card-header-flex">
-            <h3 class="card-title">${prob.title}</h3>
-            <span class="badge-diff ${prob.difficulty}">${prob.difficulty}</span>
+            <h3 class="card-title">${prob.title || ''}</h3>
+            <span class="badge-diff ${prob.difficulty || 'Medium'}">${prob.difficulty || 'Medium'}</span>
           </div>
-          <p class="card-desc">${prob.description}</p>
+          <p class="card-desc">${prob.description || ''}</p>
           <div class="meta-tags">
             ${patternTags}
             ${conceptTags}
           </div>
           <div class="card-key-list">
             <div class="key-lbl">Key Classes & Interfaces</div>
-            <div class="key-items">${prob.keyClasses.join(' • ')}</div>
+            <div class="key-items">${(prob.keyClasses || []).join(' • ')}</div>
           </div>
         </div>
         <div class="resource-links">
@@ -1335,17 +1349,18 @@ document.addEventListener('DOMContentLoaded', () => {
       lldGridContainer.appendChild(card);
     });
 
-    // Render Fundamentals Section in LLD Fundamentals tab
+    // Render Fundamentals Section
     const lldFundContainer = document.getElementById('lld-fundamentals-container');
     if (lldFundContainer) {
       lldFundContainer.innerHTML = '';
-      lldTopicsData.fundamentals.forEach(fund => {
+      const fundamentals = lldData.fundamentals || [];
+      fundamentals.forEach(fund => {
         const box = document.createElement('div');
         box.className = 'hero-banner';
         box.style.marginBottom = '20px';
 
-        let content = `<h3 style="font-size: 1.25rem; font-weight:700; margin-bottom:8px; color: var(--accent-purple);">${fund.title}</h3>`;
-        content += `<p style="font-size:0.92rem; color:var(--text-secondary); margin-bottom:14px;">${fund.description}</p>`;
+        let content = `<h3 style="font-size: 1.25rem; font-weight:700; margin-bottom:8px; color: var(--accent-purple);">${fund.title || ''}</h3>`;
+        content += `<p style="font-size:0.92rem; color:var(--text-secondary); margin-bottom:14px;">${fund.description || ''}</p>`;
 
         if (fund.keyTakeaways) {
           content += `<ul style="padding-left:20px; font-size:0.9rem; color:var(--text-primary); margin-bottom:14px;">`;
@@ -1382,26 +1397,27 @@ document.addEventListener('DOMContentLoaded', () => {
      Render HLD Section
   ------------------------------------------------------------- */
   function renderHldModule() {
+    if (!hldGridContainer) return;
     hldGridContainer.innerHTML = '';
 
-    // Render Classic HLD Systems
-    hldTopicsData.classicSystems.forEach(sys => {
+    const classicSystems = hldData.classicSystems || [];
+    classicSystems.forEach(sys => {
       const card = document.createElement('div');
       card.className = 'hld-card';
 
-      const componentTags = sys.keyComponents.map(c => `<span class="tag-concept">${c}</span>`).join('');
-      const highlightsHtml = sys.architectureHighlights.map(h => `<li style="margin-bottom:6px; font-size:0.87rem; color: var(--text-secondary);">${h}</li>`).join('');
-      const linksHtml = sys.links.map(l => `<a href="${l.url}" target="_blank" class="res-link"><i class="fas fa-globe"></i> ${l.title}</a>`).join('');
+      const componentTags = (sys.keyComponents || []).map(c => `<span class="tag-concept">${c}</span>`).join('');
+      const highlightsHtml = (sys.architectureHighlights || []).map(h => `<li style="margin-bottom:6px; font-size:0.87rem; color: var(--text-secondary);">${h}</li>`).join('');
+      const linksHtml = (sys.links || []).map(l => `<a href="${l.url}" target="_blank" class="res-link"><i class="fas fa-globe"></i> ${l.title}</a>`).join('');
 
       card.innerHTML = `
         <div class="card-top">
           <div class="card-header-flex">
-            <h3 class="card-title">${sys.title}</h3>
-            <span class="badge-diff ${sys.difficulty}">${sys.difficulty}</span>
+            <h3 class="card-title">${sys.title || ''}</h3>
+            <span class="badge-diff ${sys.difficulty || 'Medium'}">${sys.difficulty || 'Medium'}</span>
           </div>
-          <p class="card-desc">${sys.description}</p>
+          <p class="card-desc">${sys.description || ''}</p>
           <div style="font-size:0.8rem; color: var(--accent-amber); font-weight:600; margin-bottom:12px;">
-            <i class="fas fa-tachometer-alt"></i> Scale Target: ${sys.scale}
+            <i class="fas fa-tachometer-alt"></i> Scale Target: ${sys.scale || 'N/A'}
           </div>
           <div class="meta-tags" style="margin-bottom:12px;">
             ${componentTags}
@@ -1418,21 +1434,22 @@ document.addEventListener('DOMContentLoaded', () => {
       hldGridContainer.appendChild(card);
     });
 
-    // Render Building Blocks & Framework
+    // Render Building Blocks
     const hldBlocksContainer = document.getElementById('hld-building-blocks-container');
     if (hldBlocksContainer) {
       hldBlocksContainer.innerHTML = '';
-      hldTopicsData.buildingBlocks.forEach(block => {
+      const blocks = hldData.buildingBlocks || [];
+      blocks.forEach(block => {
         const box = document.createElement('div');
         box.className = 'hero-banner';
         box.style.marginBottom = '20px';
 
-        let conceptsListHtml = block.keyConcepts.map(c => `<li style="margin-bottom:6px; font-size:0.9rem;">${c}</li>`).join('');
-        let linksHtml = block.resources.map(r => `<a href="${r.url}" target="_blank" class="res-link"><i class="fas fa-external-link-alt"></i> ${r.name}</a>`).join('');
+        let conceptsListHtml = (block.keyConcepts || []).map(c => `<li style="margin-bottom:6px; font-size:0.9rem;">${c}</li>`).join('');
+        let linksHtml = (block.resources || []).map(r => `<a href="${r.url}" target="_blank" class="res-link"><i class="fas fa-external-link-alt"></i> ${r.name}</a>`).join('');
 
         box.innerHTML = `
-          <h3 style="font-size: 1.2rem; font-weight:700; margin-bottom:6px; color: var(--accent-emerald);">${block.title}</h3>
-          <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:12px;">${block.description}</p>
+          <h3 style="font-size: 1.2rem; font-weight:700; margin-bottom:6px; color: var(--accent-emerald);">${block.title || ''}</h3>
+          <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:12px;">${block.description || ''}</p>
           <ul style="padding-left:20px; color:var(--text-primary); margin-bottom:14px;">${conceptsListHtml}</ul>
           <div style="display:flex; gap:16px; flex-wrap:wrap;">${linksHtml}</div>
         `;
@@ -1448,25 +1465,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!roadmapContainer) return;
     roadmapContainer.innerHTML = '';
 
-    roadmapData.weeks.forEach(w => {
+    const weeks = roadmapInfo.weeks || [];
+    weeks.forEach(w => {
       const card = document.createElement('div');
       card.className = 'roadmap-week-card';
 
       card.innerHTML = `
-        <div class="week-badge">${w.weekNumber}</div>
-        <h3 class="week-title">${w.title}</h3>
+        <div class="week-badge">${w.weekNumber || ''}</div>
+        <h3 class="week-title">${w.title || ''}</h3>
         <div class="week-goals-grid">
           <div class="goal-box">
             <div class="goal-title dsa"><i class="fas fa-code"></i> DSA Target</div>
-            <div class="goal-desc">${w.dsaGoal}</div>
+            <div class="goal-desc">${w.dsaGoal || ''}</div>
           </div>
           <div class="goal-box">
             <div class="goal-title lld"><i class="fas fa-sitemap"></i> LLD Goal</div>
-            <div class="goal-desc">${w.lldGoal}</div>
+            <div class="goal-desc">${w.lldGoal || ''}</div>
           </div>
           <div class="goal-box">
             <div class="goal-title hld"><i class="fas fa-network-wired"></i> HLD Target</div>
-            <div class="goal-desc">${w.hldGoal}</div>
+            <div class="goal-desc">${w.hldGoal || ''}</div>
           </div>
         </div>
       `;
@@ -1479,7 +1497,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ------------------------------------------------------------- */
   function updateStatistics() {
     const completedCount = completedSet.size;
-    const percentage = Math.round((completedCount / totalDsaQuestionsCount) * 100);
+    const percentage = totalDsaQuestionsCount > 0 ? Math.round((completedCount / totalDsaQuestionsCount) * 100) : 0;
 
     if (statTotalQuestions) statTotalQuestions.textContent = totalDsaQuestionsCount;
     if (statDsaCompleted) statDsaCompleted.textContent = completedCount;
@@ -1494,9 +1512,55 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* -------------------------------------------------------------
-     Event Listeners
+     Event Delegation & Listeners
   ------------------------------------------------------------- */
   function setupEventListeners() {
+    // Event delegation on DSA Accordion Container
+    if (dsaAccordionContainer) {
+      dsaAccordionContainer.addEventListener('click', (e) => {
+        // Toggle Checkbox
+        const checkbox = e.target.closest('[data-action="toggle-done"]');
+        if (checkbox) {
+          e.stopPropagation();
+          const qid = parseInt(checkbox.getAttribute('data-qid'), 10);
+          if (!isNaN(qid)) toggleQuestionDone(qid);
+          return;
+        }
+
+        // Open Note Modal
+        const noteBtn = e.target.closest('[data-action="open-note"]');
+        if (noteBtn) {
+          e.stopPropagation();
+          const qid = parseInt(noteBtn.getAttribute('data-qid'), 10);
+          if (!isNaN(qid)) {
+            const q = findQuestionById(qid);
+            openNoteModal(qid, q ? q.title : `Question #${qid}`);
+          }
+          return;
+        }
+
+        // Toggle Accordion Header
+        const header = e.target.closest('[data-action="toggle-accordion"]');
+        if (header) {
+          const topicId = header.getAttribute('data-topic-id');
+          if (topicId) {
+            const section = header.parentElement;
+            const listDiv = section ? section.querySelector('.questions-list') : null;
+            if (openTopicIds.has(topicId)) {
+              openTopicIds.delete(topicId);
+              header.classList.remove('open');
+              if (listDiv) listDiv.classList.remove('show');
+            } else {
+              openTopicIds.add(topicId);
+              header.classList.add('open');
+              if (listDiv) listDiv.classList.add('show');
+            }
+          }
+          return;
+        }
+      });
+    }
+
     if (globalSearchInput) {
       globalSearchInput.addEventListener('input', () => renderDsaTopics());
     }
@@ -1509,7 +1573,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnExpandAll) {
       btnExpandAll.addEventListener('click', () => {
-        dsaTopicsData.forEach(t => openTopicIds.add(t.id));
+        topics.forEach(t => openTopicIds.add(t.id));
         renderDsaTopics();
       });
     }
@@ -1578,21 +1642,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Note Modal Window Functions
-  window.openNoteModal = function(qid, title) {
+  function openNoteModal(qid, title) {
     currentNoteQId = qid;
-    noteModalTitle.textContent = `Notes for #${qid} - ${title}`;
-    noteTextarea.value = notesMap[qid] || '';
-    noteModal.classList.add('active');
-  };
+    if (noteModalTitle) noteModalTitle.textContent = `Notes for #${qid} - ${title}`;
+    if (noteTextarea) noteTextarea.value = notesMap[qid] || '';
+    if (noteModal) noteModal.classList.add('active');
+  }
 
   function closeNoteModal() {
-    noteModal.classList.remove('active');
+    if (noteModal) noteModal.classList.remove('active');
     currentNoteQId = null;
   }
 
   function saveNoteModal() {
     if (!currentNoteQId) return;
-    const text = noteTextarea.value.trim();
+    const text = noteTextarea ? noteTextarea.value.trim() : '';
     if (text) {
       notesMap[currentNoteQId] = text;
     } else {
@@ -1601,9 +1665,5 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(notesMap));
     closeNoteModal();
     renderDsaTopics();
-  }
-
-  function escapeQuotes(str) {
-    return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
   }
 });
